@@ -18,7 +18,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/graphicsutil"
+	. "github.com/hajimehoshi/ebiten/v2/internal/graphicsutil"
 )
 
 func TestMipmapLevel(t *testing.T) {

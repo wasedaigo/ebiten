@@ -23,10 +23,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/png"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
-	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/png"
+	"github.com/hajimehoshi/ebiten/v2/internal/shareable"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
@@ -328,7 +328,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Different from Run, RunWithoutMainLoop returns immediately.
 //
 // Ebiten users should NOT call RunWithoutMainLoop.
-// Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
+// Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	f = (&imageDumper{f: f}).update
 

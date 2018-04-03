@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-gl/glfw/v3.2/glfw"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 )
 
 const (
