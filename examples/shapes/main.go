@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	emptyImage = ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	emptyImage = ebiten.NewImage(16, 16)
 )
 
 func init() {
