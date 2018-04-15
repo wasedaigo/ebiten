@@ -139,8 +139,6 @@ type Image struct {
 
 	bounds   *image.Rectangle
 	original *Image
-
-	filter Filter
 }
 
 func (i *Image) copyCheck() {
@@ -232,7 +230,6 @@ func (i *Image) fill(r, g, b, a uint8) {
 		op.ColorM.Translate(rf, gf, bf, af)
 	}
 	op.CompositeMode = CompositeModeCopy
-	op.Filter = FilterNearest
 	i.DrawImage(emptyImage, op)
 }
 
@@ -336,17 +333,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	mode := opengl.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
-	}
-
 	a, b, c, d, tx, ty := geom.elements()
 
 	level := 0
-	if filter == graphics.FilterLinear {
+	if graphics.Filter(options.Filter) == graphics.FilterLinear {
 		det := geom.det()
 		if det == 0 {
 			return
@@ -379,7 +369,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		src := img.mipmap.original()
 		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphicsutil.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, graphics.Filter(options.Filter))
 	} else if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
 		w, h := src.Size()
 		s := 1 << uint(level)
@@ -389,7 +379,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		d *= float32(s)
 		vs := src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphicsutil.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, graphics.Filter(options.Filter))
 	}
 	i.disposeMipmaps()
 }
@@ -429,7 +419,7 @@ type DrawTrianglesOptions struct {
 	CompositeMode CompositeMode
 
 	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault.
+	// The default (zero) value is FilterNearest.
 	Filter Filter
 }
 
@@ -469,19 +459,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	mode := opengl.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
-	}
-
 	vs := []float32{}
 	src := img.mipmap.original()
 	for _, v := range vertices {
 		vs = append(vs, src.Vertex(float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)...)
 	}
-	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
+	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, graphics.Filter(options.Filter))
 	i.disposeMipmaps()
 }
 
@@ -609,7 +592,7 @@ type DrawImageOptions struct {
 	CompositeMode CompositeMode
 
 	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault, which is same as FilterNearest.
+	// The default (zero) value is FilterNearest.
 	Filter Filter
 
 	// Deprecated (as of 1.9.0-alpha): Use SubImage instead.
@@ -673,7 +656,6 @@ func NewImageFromImage(source image.Image) *Image {
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
 		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
-		filter: FilterDefault,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
