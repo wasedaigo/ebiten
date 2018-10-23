@@ -135,6 +135,9 @@ type Image struct {
 	// The level 0 image is a regular image and higher-level images are used for mipmap.
 	mipmap *mipmap
 
+	bounds   *image.Rectangle
+	original *Image
+
 	filter Filter
 }
 
@@ -294,21 +297,32 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 				ColorM:        options.ColorM,
 				CompositeMode: options.CompositeMode,
 			}
-			r := image.Rect(sx0, sy0, sx1, sy1)
-			op.SourceRect = &r
 			op.GeoM.Scale(
 				float64(dx1-dx0)/float64(sx1-sx0),
 				float64(dy1-dy0)/float64(sy1-sy0))
 			op.GeoM.Translate(float64(dx0), float64(dy0))
 			op.GeoM.Concat(options.GeoM)
-			i.DrawImage(img, op)
+			i.DrawImage(img.SubImage(image.Rect(sx0, sy0, sx1, sy1)).(*Image), op)
 		}
 		return
 	}
 
 	w, h := img.Size()
 	sx0, sy0, sx1, sy1 := 0, 0, w, h
-	if r := options.SourceRect; r != nil {
+
+	// TODO: Consider i.bounds (See image/draw's clip function).
+	if img.bounds != nil || options.SourceRect != nil {
+		r := img.bounds
+		if r == nil {
+			r = options.SourceRect
+		} else if options.SourceRect != nil {
+			r2 := r.Intersect(*options.SourceRect)
+			r = &r2
+		}
+		if r.Empty() {
+			return
+		}
+
 		sx0 = r.Min.X
 		sy0 = r.Min.Y
 		if sx1 > r.Max.X {
@@ -318,6 +332,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 			sy1 = r.Max.Y
 		}
 	}
+
 	geom := &options.GeoM
 	if sx0 < 0 || sy0 < 0 {
 		dx := 0.0
@@ -477,10 +492,49 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.disposeMipmaps()
 }
 
+// SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.
+//
+// The returned value is always *ebiten.Image.
+//
+// If the image is disposed, SubImage returns nil.
+func (i *Image) SubImage(r image.Rectangle) image.Image {
+	i.copyCheck()
+	if i.isDisposed() {
+		return nil
+	}
+
+	img := &Image{
+		mipmap: i.mipmap,
+		filter: i.filter,
+	}
+
+	// Keep the original image's reference not to dispose that by GC.
+	if i.original == nil {
+		img.original = i
+	} else {
+		img.original = i.original
+	}
+
+	img.addr = img
+	runtime.SetFinalizer(img, (*Image).Dispose)
+
+	r = r.Intersect(img.Bounds())
+	// Need to check Empty explicitly. See the standard image package implementations.
+	if r.Empty() {
+		img.bounds = &image.ZR
+	} else {
+		img.bounds = &r
+	}
+	return img
+}
+
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
-	w, h := i.Size()
-	return image.Rect(0, 0, w, h)
+	if i.bounds == nil {
+		w, h := i.Size()
+		return image.Rect(0, 0, w, h)
+	}
+	return *i.bounds
 }
 
 // ColorModel returns the color model of the image.
@@ -517,7 +571,9 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.mipmap.dispose()
+	if i.original == nil {
+		i.mipmap.dispose()
+	}
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -545,22 +601,6 @@ func (i *Image) ReplacePixels(p []byte) error {
 
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	// SourceRect is the region of the source image to draw.
-	// If SourceRect is nil, whole image is used.
-	//
-	// It is assured that texels out of the SourceRect are never used.
-	//
-	// Calling DrawImage copies the content of SourceRect pointer. This means that
-	// even if the SourceRect value is modified after passed to DrawImage,
-	// the result of DrawImage doen't change.
-	//
-	//     op := &ebiten.DrawImageOptions{}
-	//     r := image.Rect(0, 0, 100, 100)
-	//     op.SourceRect = &r
-	//     dst.DrawImage(src, op)
-	//     r.Min.X = 10 // This doesn't affect the previous DrawImage.
-	SourceRect *image.Rectangle
-
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identify, which draws the image at (0, 0).
 	GeoM GeoM
@@ -585,11 +625,14 @@ type DrawImageOptions struct {
 	// Otherwise, Filter specified at DrawImageOptions is used.
 	Filter Filter
 
-	// Deprecated (as of 1.5.0-alpha): Use SourceRect instead.
+	// Deprecated (as of 1.5.0-alpha): Use SubImage instead.
 	ImageParts ImageParts
 
-	// Deprecated (as of 1.1.0-alpha): Use SourceRect instead.
+	// Deprecated (as of 1.1.0-alpha): Use SubImage instead.
 	Parts []ImagePart
+
+	// Deprecated (as of 1.9.0-alpha): Use SubImage instead.
+	SourceRect *image.Rectangle
 }
 
 // NewImage returns an empty image.
