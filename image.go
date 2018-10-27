@@ -289,15 +289,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	w, h := img.Size()
 	sx0, sy0, sx1, sy1 := 0, 0, w, h
 
-	// SourceRect is deprecated. This implementation is for backward compatibility.
-	if img.bounds != nil || options.SourceRect != nil {
+	if img.bounds != nil {
 		r := img.bounds
-		if r == nil {
-			r = options.SourceRect
-		} else if options.SourceRect != nil {
-			r2 := r.Intersect(*options.SourceRect)
-			r = &r2
-		}
 		if r.Empty() {
 			return
 		}
@@ -592,9 +585,6 @@ type DrawImageOptions struct {
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
 	Filter Filter
-
-	// Deprecated (as of 1.9.0-alpha): Use SubImage instead.
-	SourceRect *image.Rectangle
 }
 
 // NewImage returns an empty image.
