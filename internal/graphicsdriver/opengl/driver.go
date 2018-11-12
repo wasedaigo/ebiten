@@ -33,12 +33,16 @@ type Driver struct {
 	context context
 }
 
+func (d *Driver) SetWindow(window uintptr) {
+	// Do nothing.
+}
+
 func (d *Driver) checkSize(width, height int) {
 	if width < 1 {
-		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1.", width))
+		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1", width))
 	}
 	if height < 1 {
-		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
+		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1", height))
 	}
 	m := d.context.getMaxTextureSize()
 	if width > m {
@@ -104,4 +108,16 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 
 func (d *Driver) Flush() {
 	d.context.flush()
+}
+
+func (d *Driver) SetVsyncEnabled(enabled bool) {
+	// Do nothing
+}
+
+func (d *Driver) VDirection() graphicsdriver.VDirection {
+	return graphicsdriver.DownwardV
+}
+
+func (d *Driver) IsGL() bool {
+	return true
 }
