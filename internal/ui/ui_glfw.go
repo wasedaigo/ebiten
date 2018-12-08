@@ -26,9 +26,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-gl/glfw/v3.2/glfw"
-
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/glfw"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"

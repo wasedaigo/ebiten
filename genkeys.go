@@ -232,7 +232,7 @@ const inputKeysGlfwTmpl = `{{.License}}
 package input
 
 import (
-	glfw "github.com/go-gl/glfw/v3.2/glfw"
+	glfw "github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
 var glfwKeyCodeToKey = map[glfw.Key]Key{
