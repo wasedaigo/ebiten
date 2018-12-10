@@ -444,8 +444,6 @@ struct _GLFWlibrary
     _GLFWmonitor**      monitors;
     int                 monitorCount;
 
-    uint64_t            timerOffset;
-
     struct {
         GLFWbool        available;
         void*           handle;
@@ -472,8 +470,6 @@ struct _GLFWlibrary
     _GLFW_PLATFORM_LIBRARY_WINDOW_STATE;
     // This is defined in the context API's context.h
     _GLFW_PLATFORM_LIBRARY_CONTEXT_STATE;
-    // This is defined in the platform's time.h
-    _GLFW_PLATFORM_LIBRARY_TIME_STATE;
     // This is defined in the platform's joystick.h
     _GLFW_PLATFORM_LIBRARY_JOYSTICK_STATE;
     // This is defined in the platform's tls.h
@@ -614,16 +610,6 @@ const unsigned char* _glfwPlatformGetJoystickButtons(int joy, int* count);
  *  @ingroup platform
  */
 const char* _glfwPlatformGetJoystickName(int joy);
-
-/*! @copydoc glfwGetTimerValue
- *  @ingroup platform
- */
-uint64_t _glfwPlatformGetTimerValue(void);
-
-/*! @copydoc glfwGetTimerFrequency
- *  @ingroup platform
- */
-uint64_t _glfwPlatformGetTimerFrequency(void);
 
 /*! @ingroup platform
  */
