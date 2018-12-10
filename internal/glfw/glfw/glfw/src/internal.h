@@ -1026,16 +1026,4 @@ void _glfwFreeMonitors(_GLFWmonitor** monitors, int count);
  */
 GLFWbool _glfwIsPrintable(int key);
 
-/*! @ingroup utility
- */
-GLFWbool _glfwInitVulkan(void);
-
-/*! @ingroup utility
- */
-void _glfwTerminateVulkan(void);
-
-/*! @ingroup utility
- */
-const char* _glfwGetVulkanResultString(VkResult result);
-
 #endif // _glfw3_internal_h_

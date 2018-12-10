@@ -161,8 +161,6 @@ GLFWAPI void glfwTerminate(void)
             _glfwPlatformSetGammaRamp(monitor, &monitor->originalRamp);
     }
 
-    _glfwTerminateVulkan();
-
     _glfwFreeMonitors(_glfw.monitors, _glfw.monitorCount);
     _glfw.monitors = NULL;
     _glfw.monitorCount = 0;

@@ -1659,58 +1659,6 @@ char** _glfwPlatformGetRequiredInstanceExtensions(uint32_t* count)
     return extensions;
 }
 
-int _glfwPlatformGetPhysicalDevicePresentationSupport(VkInstance instance,
-                                                      VkPhysicalDevice device,
-                                                      uint32_t queuefamily)
-{
-    PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR =
-        (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)
-        vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
-    if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
-    {
-        _glfwInputError(GLFW_API_UNAVAILABLE,
-                        "Win32: Vulkan instance missing VK_KHR_win32_surface extension");
-        return GLFW_FALSE;
-    }
-
-    return vkGetPhysicalDeviceWin32PresentationSupportKHR(device, queuefamily);
-}
-
-VkResult _glfwPlatformCreateWindowSurface(VkInstance instance,
-                                          _GLFWwindow* window,
-                                          const VkAllocationCallbacks* allocator,
-                                          VkSurfaceKHR* surface)
-{
-    VkResult err;
-    VkWin32SurfaceCreateInfoKHR sci;
-    PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
-
-    vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)
-        vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
-    if (!vkCreateWin32SurfaceKHR)
-    {
-        _glfwInputError(GLFW_API_UNAVAILABLE,
-                        "Win32: Vulkan instance missing VK_KHR_win32_surface extension");
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-
-    memset(&sci, 0, sizeof(sci));
-    sci.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    sci.hinstance = GetModuleHandle(NULL);
-    sci.hwnd = window->win32.handle;
-
-    err = vkCreateWin32SurfaceKHR(instance, &sci, allocator, surface);
-    if (err)
-    {
-        _glfwInputError(GLFW_PLATFORM_ERROR,
-                        "Win32: Failed to create Vulkan surface: %s",
-                        _glfwGetVulkanResultString(err));
-    }
-
-    return err;
-}
-
-
 //////////////////////////////////////////////////////////////////////////
 //////                        GLFW native API                       //////
 //////////////////////////////////////////////////////////////////////////
