@@ -12,6 +12,5 @@ package glfw
 #include "glfw/src/win32_tls.c"
 #include "glfw/src/win32_window.c"
 #include "glfw/src/wgl_context.c"
-#include "glfw/src/egl_context.c"
 */
 import "C"

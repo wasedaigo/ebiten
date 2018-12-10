@@ -1001,10 +1001,7 @@ int _glfwPlatformCreateWindow(_GLFWwindow* window,
         }
         else
         {
-            if (!_glfwInitEGL())
-                return GLFW_FALSE;
-            if (!_glfwCreateContextEGL(window, ctxconfig, fbconfig))
-                return GLFW_FALSE;
+            return GLFW_FALSE;
         }
     }
 

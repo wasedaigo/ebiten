@@ -445,7 +445,6 @@ void _glfwPlatformTerminate(void)
     free(_glfw.win32.clipboardString);
 
     _glfwTerminateWGL();
-    _glfwTerminateEGL();
 
     _glfwTerminateJoysticksWin32();
     _glfwTerminateThreadLocalStorageWin32();
