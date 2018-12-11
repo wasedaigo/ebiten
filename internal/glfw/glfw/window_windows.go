@@ -6,9 +6,7 @@ package glfw
 //void glfwSetWindowSizeCallbackCB(GLFWwindow *window);
 //void glfwSetFramebufferSizeCallbackCB(GLFWwindow *window);
 //void glfwSetWindowCloseCallbackCB(GLFWwindow *window);
-//void glfwSetWindowRefreshCallbackCB(GLFWwindow *window);
 //void glfwSetWindowFocusCallbackCB(GLFWwindow *window);
-//void glfwSetWindowIconifyCallbackCB(GLFWwindow *window);
 import "C"
 
 import (
@@ -52,14 +50,13 @@ type Hint int
 
 // Window related hints.
 const (
-	Focused     Hint = C.GLFW_FOCUSED      // Specifies whether the window will be given input focus when created. This hint is ignored for full screen and initially hidden windows.
-	Iconified   Hint = C.GLFW_ICONIFIED    // Specifies whether the window will be minimized.
-	Maximized   Hint = C.GLFW_MAXIMIZED    // Specifies whether the window is maximized.
-	Visible     Hint = C.GLFW_VISIBLE      // Specifies whether the window will be initially visible.
-	Resizable   Hint = C.GLFW_RESIZABLE    // Specifies whether the window will be resizable by the user.
-	Decorated   Hint = C.GLFW_DECORATED    // Specifies whether the window will have window decorations such as a border, a close widget, etc.
-	Floating    Hint = C.GLFW_FLOATING     // Specifies whether the window will be always-on-top.
-	AutoIconify Hint = C.GLFW_AUTO_ICONIFY // Specifies whether fullscreen windows automatically iconify (and restore the previous video mode) on focus loss.
+	Focused   Hint = C.GLFW_FOCUSED   // Specifies whether the window will be given input focus when created. This hint is ignored for full screen and initially hidden windows.
+	Iconified Hint = C.GLFW_ICONIFIED // Specifies whether the window will be minimized.
+	Maximized Hint = C.GLFW_MAXIMIZED // Specifies whether the window is maximized.
+	Visible   Hint = C.GLFW_VISIBLE   // Specifies whether the window will be initially visible.
+	Resizable Hint = C.GLFW_RESIZABLE // Specifies whether the window will be resizable by the user.
+	Decorated Hint = C.GLFW_DECORATED // Specifies whether the window will have window decorations such as a border, a close widget, etc.
+	Floating  Hint = C.GLFW_FLOATING  // Specifies whether the window will be always-on-top.
 )
 
 // Context related hints.
@@ -146,9 +143,7 @@ type Window struct {
 	fSizeHolder            func(w *Window, width int, height int)
 	fFramebufferSizeHolder func(w *Window, width int, height int)
 	fCloseHolder           func(w *Window)
-	fRefreshHolder         func(w *Window)
 	fFocusHolder           func(w *Window, focused bool)
-	fIconifyHolder         func(w *Window, iconified bool)
 
 	// Input.
 	fMouseButtonHolder func(w *Window, button MouseButton, action Action, mod ModifierKey)
@@ -158,19 +153,6 @@ type Window struct {
 	fKeyHolder         func(w *Window, key Key, scancode int, action Action, mods ModifierKey)
 	fCharHolder        func(w *Window, char rune)
 	fCharModsHolder    func(w *Window, char rune, mods ModifierKey)
-	fDropHolder        func(w *Window, names []string)
-}
-
-// GLFWWindow returns a *C.GLFWwindow reference (i.e. the GLFW window itself). This can be used for
-// passing the GLFW window handle to external C libraries.
-func (w *Window) GLFWWindow() uintptr {
-	return uintptr(unsafe.Pointer(w.data))
-}
-
-// GoWindow creates a Window from a *C.GLFWwindow reference.
-// Used when an external C library is calling your Go handlers.
-func GoWindow(window unsafe.Pointer) *Window {
-	return &Window{data: (*C.GLFWwindow)(window)}
 }
 
 //export goWindowPosCB
@@ -197,32 +179,11 @@ func goWindowCloseCB(window unsafe.Pointer) {
 	w.fCloseHolder(w)
 }
 
-//export goWindowRefreshCB
-func goWindowRefreshCB(window unsafe.Pointer) {
-	w := windows.get((*C.GLFWwindow)(window))
-	w.fRefreshHolder(w)
-}
-
 //export goWindowFocusCB
 func goWindowFocusCB(window unsafe.Pointer, focused C.int) {
 	w := windows.get((*C.GLFWwindow)(window))
 	isFocused := glfwbool(focused)
 	w.fFocusHolder(w, isFocused)
-}
-
-//export goWindowIconifyCB
-func goWindowIconifyCB(window unsafe.Pointer, iconified C.int) {
-	isIconified := glfwbool(iconified)
-	w := windows.get((*C.GLFWwindow)(window))
-	w.fIconifyHolder(w, isIconified)
-}
-
-// DefaultWindowHints resets all window hints to their default values.
-//
-// This function may only be called from the main thread.
-func DefaultWindowHints() {
-	C.glfwDefaultWindowHints()
-	panicError()
 }
 
 // WindowHint sets hints for the next call to CreateWindow. The hints,
@@ -444,20 +405,6 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	panicError()
 }
 
-// SetAspectRatio sets the required aspect ratio of the client area of the specified window.
-// If the window is full screen or not resizable, this function does nothing.
-//
-// The aspect ratio is specified as a numerator and a denominator and both values must be greater
-// than zero. For example, the common 16:9 aspect ratio is specified as 16 and 9, respectively.
-//
-// If the numerator and denominator is set to glfw.DontCare then the aspect ratio limit is disabled.
-//
-// The aspect ratio is applied immediately and may cause the window to be resized.
-func (w *Window) SetAspectRatio(numer, denom int) {
-	C.glfwSetWindowAspectRatio(w.data, C.int(numer), C.int(denom))
-	panicError()
-}
-
 // GetFramebufferSize retrieves the size, in pixels, of the framebuffer of the
 // specified window.
 func (w *Window) GetFramebufferSize() (width, height int) {
@@ -490,17 +437,6 @@ func (w *Window) GetFrameSize() (left, top, right, bottom int) {
 // is what the user wants. Focus stealing can be extremely disruptive.
 func (w *Window) Focus() error {
 	C.glfwFocusWindow(w.data)
-	return acceptError(APIUnavailable)
-}
-
-// Iconify iconifies/minimizes the window, if it was previously restored. If it
-// is a full screen window, the original monitor resolution is restored until the
-// window is restored. If the window is already iconified, this function does
-// nothing.
-//
-// This function may only be called from the main thread.
-func (w *Window) Iconify() error {
-	C.glfwIconifyWindow(w.data)
 	return acceptError(APIUnavailable)
 }
 
@@ -589,21 +525,6 @@ func (w *Window) GetAttrib(attrib Hint) int {
 	return ret
 }
 
-// SetUserPointer sets the user-defined pointer of the window. The current value
-// is retained until the window is destroyed. The initial value is nil.
-func (w *Window) SetUserPointer(pointer unsafe.Pointer) {
-	C.glfwSetWindowUserPointer(w.data, pointer)
-	panicError()
-}
-
-// GetUserPointer returns the current value of the user-defined pointer of the
-// window. The initial value is nil.
-func (w *Window) GetUserPointer() unsafe.Pointer {
-	ret := C.glfwGetWindowUserPointer(w.data)
-	panicError()
-	return ret
-}
-
 // PosCallback is the window position callback.
 type PosCallback func(w *Window, xpos int, ypos int)
 
@@ -681,28 +602,6 @@ func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) 
 	return previous
 }
 
-// RefreshCallback is the window refresh callback.
-type RefreshCallback func(w *Window)
-
-// SetRefreshCallback sets the refresh callback of the window, which
-// is called when the client area of the window needs to be redrawn, for example
-// if the window has been exposed after having been covered by another window.
-//
-// On compositing window systems such as Aero, Compiz or Aqua, where the window
-// contents are saved off-screen, this callback may be called only very
-// infrequently or never at all.
-func (w *Window) SetRefreshCallback(cbfun RefreshCallback) (previous RefreshCallback) {
-	previous = w.fRefreshHolder
-	w.fRefreshHolder = cbfun
-	if cbfun == nil {
-		C.glfwSetWindowRefreshCallback(w.data, nil)
-	} else {
-		C.glfwSetWindowRefreshCallbackCB(w.data)
-	}
-	panicError()
-	return previous
-}
-
 // FocusCallback is the window focus callback.
 type FocusCallback func(w *Window, focused bool)
 
@@ -724,46 +623,6 @@ func (w *Window) SetFocusCallback(cbfun FocusCallback) (previous FocusCallback) 
 	return previous
 }
 
-// IconifyCallback is the window iconification callback.
-type IconifyCallback func(w *Window, iconified bool)
-
-// SetIconifyCallback sets the iconification callback of the window, which is
-// called when the window is iconified or restored.
-func (w *Window) SetIconifyCallback(cbfun IconifyCallback) (previous IconifyCallback) {
-	previous = w.fIconifyHolder
-	w.fIconifyHolder = cbfun
-	if cbfun == nil {
-		C.glfwSetWindowIconifyCallback(w.data, nil)
-	} else {
-		C.glfwSetWindowIconifyCallbackCB(w.data)
-	}
-	panicError()
-	return previous
-}
-
-// SetClipboardString sets the system clipboard to the specified UTF-8 encoded
-// string.
-//
-// This function may only be called from the main thread.
-func (w *Window) SetClipboardString(str string) {
-	cp := C.CString(str)
-	defer C.free(unsafe.Pointer(cp))
-	C.glfwSetClipboardString(w.data, cp)
-	panicError()
-}
-
-// GetClipboardString returns the contents of the system clipboard, if it
-// contains or is convertible to a UTF-8 encoded string.
-//
-// This function may only be called from the main thread.
-func (w *Window) GetClipboardString() (string, error) {
-	cs := C.glfwGetClipboardString(w.data)
-	if cs == nil {
-		return "", acceptError(FormatUnavailable)
-	}
-	return C.GoString(cs), nil
-}
-
 // PollEvents processes only those events that have already been received and
 // then returns immediately. Processing events will cause the window and input
 // callbacks associated with those events to be called.
@@ -775,62 +634,5 @@ func (w *Window) GetClipboardString() (string, error) {
 // This function may only be called from the main thread.
 func PollEvents() {
 	C.glfwPollEvents()
-	panicError()
-}
-
-// WaitEvents puts the calling thread to sleep until at least one event has been
-// received. Once one or more events have been recevied, it behaves as if
-// PollEvents was called, i.e. the events are processed and the function then
-// returns immediately. Processing events will cause the window and input
-// callbacks associated with those events to be called.
-//
-// Since not all events are associated with callbacks, this function may return
-// without a callback having been called even if you are monitoring all
-// callbacks.
-//
-// This function may not be called from a callback.
-//
-// This function may only be called from the main thread.
-func WaitEvents() {
-	C.glfwWaitEvents()
-	panicError()
-}
-
-// WaitEventsTimeout puts the calling thread to sleep until at least one event is available in the
-// event queue, or until the specified timeout is reached. If one or more events are available,
-// it behaves exactly like PollEvents, i.e. the events in the queue are processed and the function
-// then returns immediately. Processing events will cause the window and input callbacks associated
-// with those events to be called.
-//
-// The timeout value must be a positive finite number.
-//
-// Since not all events are associated with callbacks, this function may return without a callback
-// having been called even if you are monitoring all callbacks.
-//
-// On some platforms, a window move, resize or menu operation will cause event processing to block.
-// This is due to how event processing is designed on those platforms. You can use the window
-// refresh callback to redraw the contents of your window when necessary during such operations.
-//
-// On some platforms, certain callbacks may be called outside of a call to one of the event
-// processing functions.
-//
-// If no windows exist, this function returns immediately. For synchronization of threads in
-// applications that do not create windows, use native Go primitives.
-//
-// Event processing is not required for joystick input to work.
-func WaitEventsTimeout(timeout float64) {
-	C.glfwWaitEventsTimeout(C.double(timeout))
-	panicError()
-}
-
-// PostEmptyEvent posts an empty event from the current thread to the main
-// thread event queue, causing WaitEvents to return.
-//
-// If no windows exist, this function returns immediately. For synchronization of threads in
-// applications that do not create windows, use native Go primitives.
-//
-// This function may be called from secondary threads.
-func PostEmptyEvent() {
-	C.glfwPostEmptyEvent()
 	panicError()
 }
